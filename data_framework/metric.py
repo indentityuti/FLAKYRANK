@@ -1,7 +1,7 @@
 import numpy as np
-#918评价指标
+
 def average_precision(y_true, y_scores):
-    # 计算平均准确率（AP）
+   
     precision = []
     num_relevant = sum(y_true)
     if num_relevant == 0:
@@ -36,7 +36,7 @@ def mean_average_precision_at_5(y_true, y_pred):
     return total_precision / num_correct
 
 def mean_reciprocal_rank(y_true, y_pred):
-    # 计算平均倒数排名（MRR）
+    
     sorted_indices = np.argsort(y_pred)[::-1]
     for i, idx in enumerate(sorted_indices):
         if y_true[idx] == 1:
@@ -44,7 +44,7 @@ def mean_reciprocal_rank(y_true, y_pred):
     return 0.0
 
 def dcg_at_k(y_true, y_pred, k):
-    # 计算折损累积增益（DCG）
+    
     dcg = 0.0
     klen=int(k*0.01*len(y_pred))
     for i in range(klen):

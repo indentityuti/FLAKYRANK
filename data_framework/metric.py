@@ -1,90 +1,116 @@
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import accuracy_score, classification_report
-from imblearn.over_sampling import RandomOverSampler
-from sklearn.metrics import confusion_matrix
-from sklearn.model_selection import train_test_split
-import os
+#918评价指标
+def average_precision(y_true, y_scores):
+    # 计算平均准确率（AP）
+    precision = []
+    num_relevant = sum(y_true)
+    if num_relevant == 0:
+        return 0.0
 
-data_folder = './jiajia'  # 数据文件夹路径
-data_files = []
+    sorted_indices = np.argsort(y_scores)[::-1]
+    num_retrieved = 0
+    for i, idx in enumerate(sorted_indices):
+        if y_true[idx] == 1:
+            num_retrieved += 1
+            precision.append(num_retrieved / (i + 1))
 
-# 遍历数据文件夹下的所有文件
-for filename in os.listdir(data_folder):
-    if filename.endswith(".txt"):
-        file_path = os.path.join(data_folder, filename)
-        data_files.append(file_path)
+    if not precision:
+        return 0.0
 
-# 创建一个文件夹用于保存结果
-result_folder = './results'
-os.makedirs(result_folder, exist_ok=True)
+    return np.mean(precision)
+def mean_average_precision_at_5(y_true, y_pred):
+    # 计算平均精度均值（MAP@5）
+    llen=int(0.05*len(y_pred))
+    sorted_indices = np.argsort(y_pred)[::-1][:llen]  # 取前五个预测结果的索引
+    num_correct = 0
+    total_precision = 0.0
 
-for test_file in data_files:
-    # 加载测试数据
-    data_test = np.loadtxt(test_file, delimiter=',', dtype=float)
+    for i, idx in enumerate(sorted_indices):
+        if y_true[idx] == 1:
+            num_correct += 1
+            total_precision += num_correct / (i + 1)
 
-    # 提取测试特征和标签
-    X_test = data_test[:, 1:]
-    y_test = data_test[:, 0]
+    if num_correct == 0:
+        return 0.0
 
-    # 创建随机森林分类器
-    rf_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
+    return total_precision / num_correct
 
-    # 初始化变量用于保存训练集的数据
-    X_train_all = []
-    y_train_all = []
+def mean_reciprocal_rank(y_true, y_pred):
+    # 计算平均倒数排名（MRR）
+    sorted_indices = np.argsort(y_pred)[::-1]
+    for i, idx in enumerate(sorted_indices):
+        if y_true[idx] == 1:
+            return 1 / (i + 1)
+    return 0.0
 
-    # 构建训练集
-    for train_file in data_files:
-        if train_file != test_file:
-            # 加载训练数据
-            data_train = np.loadtxt(train_file, delimiter=',', dtype=float)
+def dcg_at_k(y_true, y_pred, k):
+    # 计算折损累积增益（DCG）
+    dcg = 0.0
+    klen=int(k*0.01*len(y_pred))
+    for i in range(klen):
+        rel = y_pred[i] if y_true[i] == y_pred[i] else 0
+        dcg += (2**rel - 1) / np.log2(i + 2)
+    return dcg
 
-            # 提取训练特征和标签
-            X_train = data_train[:, 1:]
-            y_train = data_train[:, 0]
+def ndcg_at_k(y_true, y_pred, k):
+    # 计算归一化折损累积增益（NDCG）
+    dcg = dcg_at_k(y_true, y_pred, k)
+    idcg = dcg_at_k(y_true, y_true, k)
+    if idcg == 0:
+        return 0.0
+    return dcg / idcg
 
-            # 使用过采样方法平衡训练数据集
-            oversampler = RandomOverSampler(sampling_strategy='auto', random_state=42)
-            X_train_resampled, y_train_resampled = oversampler.fit_resample(X_train, y_train)
 
-            X_train_all.append(X_train_resampled)
-            y_train_all.append(y_train_resampled)
+def precision_at_1(y_true, y_pred):
+    # 计算Precision at 1 (P@1)
+    correct_prediction = y_true[0] == y_pred[0]
+    return 1 if correct_prediction else 0
 
-    # 将所有训练集合并
-    X_train_combined = np.vstack(X_train_all)
-    y_train_combined = np.hstack(y_train_all)
+def precision_at_k(y_true, y_pred, k):
+    # 计算Precision at k (P@k)
+    k = min(k, len(y_pred))
+    correct_predictions = sum(y_true[:k] == y_pred[:k])
+    return correct_predictions / k
 
-    # 训练模型
-    rf_classifier.fit(X_train_combined, y_train_combined)
+data_path='./lastresult/activiti.txt'
+data=np.loadtxt(data_path, delimiter=',', dtype=float)
+sorted_indices = np.argsort(data[:, 0])[::-1]
+# 使用排序后的索引重新排列数组
+result = data[sorted_indices]
+y_true = result[:, 0].astype(int)
+y_pred = result[:, 1].astype(int)
+y_scores = result[:, 2]
+# 计算P@3和P@5
+k_3 = 3
+k_5 = 5
 
-    # 进行预测
-    y_pred = rf_classifier.predict(X_test)
+p_at_3 = precision_at_k(y_true, y_pred, k_3)
+p_at_5 = precision_at_k(y_true, y_pred, k_5)
 
-    # 评估模型性能
-    accuracy = accuracy_score(y_test, y_pred)
-    classification_rep = classification_report(y_test, y_pred)
-    result_file = os.path.join(result_folder, os.path.splitext(os.path.basename(test_file))[0])
-    print(f"{result_file}准确度: {accuracy:.2f}")
-    print(f"{result_file}分类报告:\n", classification_rep)
 
-    # 计算混淆矩阵
-    conf_matrix = confusion_matrix(y_test, y_pred)
+map_score = average_precision(y_true, y_pred)
+mrr_score = mean_reciprocal_rank(y_true, y_pred)
+# k = int(0.05*len(data[:,0]) )
+# 你可以指定一个合适的k值
+m=10
+k=5
+j=3
+ndcg_score = ndcg_at_k(y_true, y_pred, k)
+ndcg_score_3 = ndcg_at_k(y_true, y_pred, j)
+ndcg_score_10 = ndcg_at_k(y_true, y_pred, m)
+p_at_1 = precision_at_1(y_true, y_pred)
+map5=mean_average_precision_at_5(y_true, y_pred)
+# print("P@1:", p_at_1)
+# print(f"P@{k_3}:", p_at_3)
+# print(f"P@{k_5}:", p_at_5)
+# 计算MAP，MRR和NDCG
+print("MAP:", map_score)
+print("MAP@5:",map5)
+print("MRR:", mrr_score)
+print(f"NDCG@{j}:", ndcg_score_3)
+print(f"NDCG@{k}:", ndcg_score)
+print(f"NDCG@{m}:", ndcg_score_10)
 
-    # 从混淆矩阵中提取 TP、FP、TN、FN 的值
-    TP = conf_matrix[1, 1]  # True Positives
-    FP = conf_matrix[0, 1]  # False Positives
-    TN = conf_matrix[0, 0]  # True Negatives
-    FN = conf_matrix[1, 0]  # False Negatives
 
-    print(f"{result_file}True Positives (TP): {TP}")
-    print(f"{result_file}False Positives (FP): {FP}")
-    print(f"{result_file}True Negatives (TN): {TN}")
-    print(f"{result_file}False Negatives (FN): {FN}")
 
-    y_prob = rf_classifier.predict_proba(X_test)[:, 1]
 
-    # 保存得分到文件夹中，以测试集名称命名
-    result_file = os.path.join(result_folder, os.path.splitext(os.path.basename(test_file))[0])
-    np.savetxt(f'{result_file}_presocer.txt', y_prob, delimiter=',', fmt='%.4f')  # 保存测试集的真实标签到文件
-    np.savetxt(f'{result_file}_labeltest.txt', y_test, delimiter=',', fmt='%d')

@@ -6,17 +6,16 @@ Welcome to FLAKYRANK, an open-source project designed to address the challenges 
 ### Why FLAKY Tests?
 FLAKY tests are a common challenge in software testing, as they produce inconsistent results across test runs, making it difficult to distinguish real defects from sporadic issues. FLAKYRANK aims to tackle this problem by providing a ranking framework that helps prioritize these problematic tests.
 
-### Data Source
-FLAKYRANK relies on data from the [data_framework](link to data_framework) to train and test its ranking models. This dataset includes various attributes and features of FLAKY tests, along with essential ranking information. High-quality data is at the core of FLAKYRANK's success.
+### Repository Structure
+The FLAKYRANK repository is organized into different directories, each serving a specific purpose:
 
-### Ranking Methods
-FLAKYRANK employs a variety of ranking methods, offering flexibility in choosing the most suitable approach for your needs:
+- `pointwise`: This directory contains code related to the pointwise ranking method. Pointwise ranking ranks test cases individually based on their FLAKY characteristics. You can explore this directory for algorithms and tools specific to pointwise ranking.
 
-- **Pairwise Ranking**: Compares test cases in pairs to determine their relative FLAKY behavior.
-- **Pointwise Ranking**: Ranks test cases individually based on their FLAKY characteristics.
-- **Listwise Ranking**: Ranks test cases as a group, considering their collective FLAKY attributes.
+- `pairwise`: The `pairwise` directory houses code and resources related to the pairwise ranking method. Pairwise ranking involves comparing test cases in pairs to determine their relative FLAKY behavior. You'll find code and tools for this method in this directory.
 
-This flexibility enables you to adapt the ranking strategy to your specific requirements and testing scenarios.
+- `listwise`: In the `listwise` directory, you'll discover code and resources associated with the listwise ranking method. Listwise ranking ranks test cases as a group, considering their collective FLAKY attributes. This directory contains algorithms and tools tailored for listwise ranking.
+
+- `data_framework`: The `data_framework` directory is where you'll find the dataset used by FLAKYRANK for training and testing its ranking models. It includes various attributes and features of FLAKY tests, along with essential ranking information. Additionally, this directory contains code for data preprocessing and feature engineering to ensure high-quality data.
 
 ### Machine Learning Algorithms
 To effectively rank FLAKY tests, FLAKYRANK leverages a range of machine learning algorithms, including, but not limited to:
